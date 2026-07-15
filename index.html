@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Plinko Casino Game</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+            user-select: none;
+        }
+
+        body {
+            background-color: #0f172a;
+            color: #f8fafc;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+            padding: 10px;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 10px;
+        }
+
+        h1 {
+            font-size: 1.8rem;
+            color: #38bdf8;
+            margin-bottom: 2px;
+        }
+
+        .subtitle {
+            font-size: 0.85rem;
+            color: #64748b;
+        }
+
+        .game-container {
+            display: flex;
+            flex-direction: column;
+            width: 100%;
+            max-width: 800px;
+            gap: 15px;
+        }
+
+        @media (min-width: 600px) {
+            .game-container {
+                flex-direction: row;
+                align-items: stretch;
+            }
+        }
+
+        /* Control Panel Styles */
+        .panel {
+            background-color: #1e293b;
+            border-radius: 12px;
+            padding: 15px;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        }
+
+        .stat-box {
+            background-color: #0f172a;
+            border: 1px solid #334155;
+            border-radius: 8px;
+            padding: 10px;
+            text-align: center;
+        }
+
+        .stat-label {
+            font-size: 0.75rem;
+            color: #94a3b8;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-bottom: 4px;
+        }
+
+        .stat-value {
+            font-size: 1.4rem;
+            font-weight: bold;
+            color: #f8fafc;
+        }
+
+        .stat-value.money {
+            color: #4ade80;
+        }
+
+        .input-group {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        label {
+            font-size: 0.85rem;
+            color: #94a3b8;
+        }
+
+        .bet-inputs {
+            display: flex;
+            gap: 8px;
+        }
+
+        input[type="number"] {
+            flex: 1;
+            background-color: #0f172a;
+            border: 1px solid #334155;
+            color: #f8fafc;
+            padding: 10px;
+            border-radius: 6px;
+            font-size: 1rem;
+            outline: none;
+        }
+
+        input:focus {
+            border-color: #38bdf8;
+        }
+
+        .quick-bet-btn {
+            background-color: #334155;
+            color: #f8fafc;
+            border: none;
+            padding: 0 12px;
+            border-radius: 6px;
+            font-weight: 600;
+            cursor: pointer;
+        }
+
+        .quick-bet-btn:hover {
+            background-color: #475569;
+        }
+
+        .action-btn {
+            background-color: #e11d48;
+            color: white;
+            border: none;
+            padding: 14px;
+            border-radius: 8px;
+            font-size: 1.1rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background-color 0.1s, transform 0.05s;
+            box-shadow: 0 4px 0px #9f1239;
+        }
+
+        .action-btn:hover {
+            background-color: #f43f5e;
+        }
+
+        .action-btn:active {
+            transform: translateY(4px);
+            box-shadow: 0 0px 0px transparent;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+            margin-top: auto;
+        }
+
+        .mini-stat {
+            background-color: #0f172a;
+            padding: 8px;
+            border-radius: 6px;
+            font-size: 0.8rem;
+            text-align: center;
+            border: 1px solid #1e293b;
+        }
+
+        .mini-label {
+            color: #64748b;
+            margin-bottom: 2px;
+        }
+
+        /* Canvas Arena Styles */
+        .arena {
+            flex: 1.5;
+            background-color: #0f172a;
+            border: 1px solid #334155;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            overflow: hidden;
+            aspect-ratio: 4 / 5;
+        }
+
+        canvas {
+            width: 100%;
+            height: 100%;
+            display: block;
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1>Plinko Physics Arena</h1>
+        <div class="subtitle">Standard Galvanized Probabilities</div>
+    </header>
+
+    <div class="game-container">
+        <!-- Control Interface -->
+        <div class="panel">
+            <div class="stat-box">
+                <div class="stat-label">Available Balance</div>
+                <div class="stat-value money" id="balanceDisplay">$1,000.00</div>
+            </div>
+
+            <div class="input-group">
+                <label for="betAmount">Bet Amount ($)</label>
+                <div class="bet-inputs">
+                    <input type="number" id="betAmount" value="10" min="1" max="1000" step="5">
+                    <button class="quick-bet-btn" id="halfBetBtn">½</button>
+                    <button class="quick-bet-btn" id="doubleBetBtn">2×</button>
+                </div>
+            </div>
+
+            <button class="action-btn" id="dropBallBtn">DROP BALL</button>
+
+            <div class="stats-grid">
+                <div class="mini-stat">
+                    <div class="mini-label">Total Drops</div>
+                    <div id="statDrops" class="stat-value" style="font-size: 1rem;">0</div>
+                </div>
+                <div class="mini-stat">
+                    <div class="mini-label">Profit/Loss</div>
+                    <div id="statProfit" class="stat-value" style="font-size: 1rem; color: #94a3b8;">$0.00</div>
+                </div>
+                <div class="mini-stat">
+                    <div class="mini-label">Highest Win</div>
+                    <div id="statMaxWin" class="stat-value" style="font-size: 1rem; color: #eab308;">0x</div>
+                </div>
+                <div class="mini-stat">
+                    <div class="mini-label">House Edge</div>
+                    <div class="stat-value" style="font-size: 1rem; color: #94a3b8;">1.5%</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Canvas Playground -->
+        <div class="arena">
+            <canvas id="plinkoCanvas"></canvas>
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('plinkoCanvas');
+        const ctx = canvas.getContext('2d');
+
+        // Game Configuration Properties
+        const ROWS = 12; // Standard plinko grid depth
+        const MULTIPLIERS = [10, 3, 1.5, 0.7, 0.4, 0.2, 0.2, 0.4, 0.7, 1.5, 3, 10]; // Symmetric distribution matching row count
+        const MULTIPLIER_COLORS = ['#ef4444', '#f97316', '#f59e0b', '#eab308', '#84cc16', '#10b981', '#10b981', '#84cc16', '#eab308', '#f59e0b', '#f97316', '#ef4444'];
+
+        // Physics constants 
+        const GRAVITY = 0.18;
+        const BOUNCE_FRICTION = 0.5;
+
+        // Player Economics
+        let balance = 1000;
+        let totalDrops = 0;
+        let originalBalance = 1000;
+        let maxMultiplierWin = 0;
+
+        // Interactive entities
+        let pegs = [];
+        let balls = [];
+        let buckets = [];
+
+        // UI DOM links
+        const balanceDisplay = document.getElementById('balanceDisplay');
+        const betInput = document.getElementById('betAmount');
+        const dropBallBtn = document.getElementById('dropBallBtn');
+        const halfBetBtn = document.getElementById('halfBetBtn');
+        const doubleBetBtn = document.getElementById('doubleBetBtn');
+        const statDrops = document.getElementById('statDrops');
+        const statProfit = document.getElementById('statProfit');
+        const statMaxWin = document.getElementById('statMaxWin');
+
+        // Construct rigid body objects
+        class Peg {
+            constructor(x, y, radius = 4) {
+                this.x = x;
+                this.y = y;
+                this.radius = radius;
+            }
+            draw() {
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+                ctx.fillStyle = '#94a3b8';
+                ctx.fill();
+                ctx.closePath();
+            }
+        }
+
+        class Ball {
+            constructor(x, y, radius, bet) {
+                this.x = x;
+                this.y = y;
+                this.radius = radius;
+                this.vx = (Math.random() - 0.5) * 0.8; // Minor volatility offset upon entry
+                this.vy = 0;
+                this.bet = bet;
+                this.color = '#38bdf8';
+                this.completed = false;
+            }
+
+            update() {
+                this.vy += GRAVITY;
+                this.x += this.vx;
+                this.y += this.vy;
+
+                // Wall limitations
+                if (this.x - this.radius < 0) {
+                    this.x = this.radius;
+                    this.vx *= -BOUNCE_FRICTION;
+                } else if (this.x + this.radius > canvas.width) {
+                    this.x = canvas.width - this.radius;
+                    this.vx *= -BOUNCE_FRICTION;
+                }
+
+                // Check collisions against static pins
+                pegs.forEach(peg => {
+                    let dx = this.x - peg.x;
+                    let dy = this.y - peg.y;
+                    let dist = Math.sqrt(dx * dx + dy * dy);
+
