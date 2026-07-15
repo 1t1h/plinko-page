@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Plinko Premium Arena</title>
+    <title>Plinko Matrix Arena</title>
     <style>
         * {
             box-sizing: border-box;
@@ -39,7 +39,7 @@
             }
         }
 
-        /* Control Panel Setup */
+        /* Sidebar Navigation Controls */
         .panel {
             background-color: #1e293b;
             border-radius: 8px;
@@ -150,11 +150,6 @@
             background-color: #33ff88;
         }
 
-        .play-btn:active {
-            transform: scale(0.99);
-        }
-
-        /* Stats Board Display */
         .stats-dashboard {
             margin-top: auto;
             border-top: 1px solid #334155;
@@ -175,7 +170,7 @@
             color: #f8fafc;
         }
 
-        /* Canvas Board Frame */
+        /* Canvas Layout Playground */
         .arena {
             flex: 2;
             background-color: #0f172a;
@@ -187,8 +182,7 @@
 
         .canvas-wrapper {
             width: 100%;
-            max-width: 540px;
-            position: relative;
+            max-width: 560px;
         }
 
         canvas {
@@ -196,14 +190,12 @@
             width: 100%;
             height: auto;
             aspect-ratio: 1.15 / 1;
-            background-color: #0f172a;
         }
     </style>
 </head>
 <body>
 
     <div class="game-container">
-        <!-- Dashboard Sidebar Navigation -->
         <div class="panel">
             <div class="tabs-header">
                 <div class="tab-item active">Manual</div>
@@ -221,16 +213,12 @@
 
             <div class="input-block">
                 <div class="input-label">Risk</div>
-                <select class="dropdown-box">
-                    <option>Medium</option>
-                </select>
+                <select class="dropdown-box"><option>Medium</option></select>
             </div>
 
             <div class="input-block">
                 <div class="input-label">Rows</div>
-                <select class="dropdown-box">
-                    <option>16</option>
-                </select>
+                <select class="dropdown-box"><option>16</option></select>
             </div>
 
             <button class="play-btn" id="playBtn">Play</button>
@@ -249,13 +237,12 @@
                     <span><strong id="maxMultiplierText" style="color: #fbbf24;">0x</strong></span>
                 </div>
                 <div class="stat-line">
-                    <span>Expected Value (EV):</span>
+                    <span>Target Return (EV):</span>
                     <span><strong style="color: #38bdf8;">101.0%</strong></span>
                 </div>
             </div>
         </div>
 
-        <!-- Simulation Graph Display Arena -->
         <div class="arena">
             <div class="canvas-wrapper">
                 <canvas id="plinkoEngineCanvas"></canvas>
@@ -267,10 +254,9 @@
         const canvas = document.getElementById('plinkoEngineCanvas');
         const ctx = canvas.getContext('2d');
 
-        // Layout variables
         const ROWS = 16;
         
-        // Exact Symmetric 101.0% EV multi array configuration mapped across 17 exit points
+        // Mapped 101% EV distribution multipliers balancing central 0.2x thresholds
         const MULTIPLIERS = [110, 31, 11, 4.3, 1.4, 0.4, 0.2, 0.2, 0.2, 0.2, 0.2, 0.4, 1.4, 4.3, 11, 31, 110];
         const COLORS = [
             '#ff003c', '#ff2a00', '#ff5500', '#ff7f00', '#ffaa00', 
@@ -278,59 +264,70 @@
             '#ffd500', '#ffaa00', '#ff7f00', '#ff5500', '#ff2a00', '#ff003c'
         ];
 
-        // System balances
         let accountBalance = 1000.00;
         let cumulativeDrops = 0;
         let highestMultiplierTracked = 0;
 
-        let trackingPins = [];
-        let simulationBalls = [];
+        let trackingPins = {};
+        let activeBalls = [];
 
-        // Interface Links
-        const balanceText = document.getElementById('balanceText');
-        const wagerAmount = document.getElementById('wagerAmount');
-        const playBtn = document.getElementById('playBtn');
-        const halfBtn = document.getElementById('halfBtn');
-        const doubleBtn = document.getElementById('doubleBtn');
-        const dropsText = document.getElementById('dropsText');
-        const maxMultiplierText = document.getElementById('maxMultiplierText');
-
-        function setupPhysicsWorld() {
-            // Coordinate width optimized for high resolution rendering
+        function setupMatrixLayout() {
             canvas.width = 650;
             canvas.height = 560;
 
-            trackingPins = [];
+            trackingPins = {};
             const startY = 40;
             const stepY = 28;
 
-            // Generate equitable triangular layout tree rows
+            // Generate clean ordered coordinate map index keys: "row-col"
             for (let r = 0; r <= ROWS; r++) {
                 const dotsInRow = r + 3;
                 const rowWidthSpacing = canvas.width / (dotsInRow + 1);
                 
                 for (let i = 0; i < dotsInRow; i++) {
-                    trackingPins.push({
+                    trackingPins[`${r}-${i}`] = {
                         x: rowWidthSpacing * (i + 1),
                         y: startY + (r * stepY)
-                    });
+                    };
                 }
             }
         }
 
-        function executionRenderStep() {
+        function engineFrameLoop() {
             ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-            // Render Node Grid pins
+            // Draw rigid pin intersections
             ctx.fillStyle = '#ffffff';
-            trackingPins.forEach(p => {
+            Object.values(trackingPins).forEach(p => {
                 ctx.beginPath();
                 ctx.arc(p.x, p.y, 3.5, 0, Math.PI * 2);
                 ctx.fill();
             });
 
-            // Map target columns along bottom edge line
+            // Map linear bounding fields along base perimeter row
             const totalBuckets = MULTIPLIERS.length;
-            const lastRowPins = trackingPins.filter(p => p.y === (40 + ROWS * 28));
-            
-            // Build linear dynamic bottom cells aligned with pins
+            const bHeight = 24;
+            const bucketY = canvas.height - 40;
+
+            const baseLeftPin = trackingPins[`${ROWS}-0`];
+            const baseRightPin = trackingPins[`${ROWS}-${ROWS+2}`];
+            const bWidth = (baseRightPin.x - baseLeftPin.x) / (totalBuckets - 1);
+            const startX = baseLeftPin.x - (bWidth / 2);
+
+            MULTIPLIERS.forEach((m, i) => {
+                const bX = startX + (i * bWidth);
+                ctx.fillStyle = COLORS[i % COLORS.length];
+                ctx.fillRect(bX + 1.5, bucketY, bWidth - 3, bHeight);
+
+                ctx.fillStyle = '#0f172a';
+                ctx.font = 'bold 9px sans-serif';
+                ctx.textAlign = 'center';
+                let displayVal = m >= 100 ? Math.floor(m) : m;
+                ctx.fillText(displayVal, bX + bWidth / 2, bucketY + 15);
+            });
+
+            // Update procedural 50/50 progression tracks
+            const speedStep = 0.08; // smooth animation interpolation step
+
+            for (let i = activeBalls.length - 1; i >= 0; i--) {
+                let ball = activeBalls[i];
